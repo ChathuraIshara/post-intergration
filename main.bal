@@ -12,4 +12,14 @@ service / on httpDefaultListener {
             return error("unhandled error", err);
         }
     }
+
+    resource function post post(string name) returns error|json {
+        do {
+            string var1 = "hello";
+            io:println(var1);
+        } on fail error err {
+            // handle error
+            return error("unhandled error", err);
+        }
+    }
 }
