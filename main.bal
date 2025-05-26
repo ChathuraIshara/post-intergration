@@ -1,25 +1,44 @@
 import ballerina/http;
-import ballerina/io;
+import ballerina/uuid;
 
-listener http:Listener httpDefaultListener = http:getDefaultListener();
+listener http:Listener postListener = http:getDefaultListener();
+table<Post> key(id) postsTable = table [];
 
-service / on httpDefaultListener {
-    resource function get greeting() returns error|json|http:InternalServerError {
-        do {
-            io:print("test posts");
-        } on fail error err {
-            // handle error
-            return error("unhandled error", err);
+service / on postListener {
+    resource function get [string id]() returns Post|NotFoundIdError {
+        // Step 1: Call a function
+        Post?|error result = findPostById(id);
+
+        // Step 2: Check result and respond
+        if result is Post {
+            return result;
+        } else {
+            return {body: "Id not found. Provided: " + id};
         }
     }
 
-    resource function post post(string name) returns error|json {
-        do {
-            string var1 = "hello";
-            io:println(var1);
-        } on fail error err {
-            // handle error
-            return error("unhandled error", err);
-        }
+    resource function post .(PostRequest postRequest) returns string {
+        string id = uuid:createType1AsString();
+        Post newPost = {id, ...postRequest};
+
+        postsTable.add(newPost);
+        return "New Post added successfully";
     }
+
+    resource function put [string id](PostRequest postRequest) returns string|NotFoundIdError {
+        if postsTable.hasKey(id) {
+            postsTable.put({id, ...postRequest});
+            return "Post updated successfully!";
+        }
+        return {body: "Id not found => " + id};
+    }
+
+    resource function delete [string id]() returns string|NotFoundIdError {
+        if postsTable.hasKey(id) {
+            _ = postsTable.remove(id);
+            return "Post deleted successfully!";
+        }
+        return {body: "Id not found => " + id};
+    }
+
 }
